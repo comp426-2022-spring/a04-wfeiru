@@ -39,13 +39,15 @@ if (args.help || args.h) {
 
 // start an app server
 const app = express();
-const port = args.port||process.env.PORT||5555;
+const port = args.port || process.env.PORT || 5555;
+const debug = args.debug || false
+const log = args.log || true
 const server = app.listen(port, () => {
     console.log('App listening on port %PORT%'.replace('%PORT%',port));
 });
 
 // create an access log file
-if (!args.log) {
+if (!log) {
     // use morgan for logging to files
     // create a write stream to append (flags: 'a') to a file
     const accessLog = fs.createWriteStream('access.log', { flags: 'a' })
@@ -54,7 +56,7 @@ if (!args.log) {
 }
 
 // available only if --debug=true
-if (args.debug == 'true') {
+if (debug) {
     // endpoint /app/log/access
     app.get('/app/log/access', (req, res) => {
         const stmt = logdb.prepare('SELECT * FROM accesslog').all()
