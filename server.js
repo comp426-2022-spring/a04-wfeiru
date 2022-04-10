@@ -42,6 +42,21 @@ const server = app.listen(port, () => {
     console.log('App listening on port %PORT%'.replace('%PORT%',port));
 });
 
+// endpoint /app/log/access, available only if --debug=true
+app.get('/app/log/access', (req, res) => {
+    if (args.debug) {
+        const stmt = logdb.prepare('SELECT * FROM accesslog').all()
+        res.json(stmt)
+    }
+});
+
+// endpoint /app/log/error, available only if --debug=true
+app.get('/app/log/error', (req, res) => {
+    if (args.debug) {
+        throw new Error('Error test successful.')
+    }
+})
+
 // middleware to insert a new record in database
 app.use( (req, res, next) => {
     let logdata = {
@@ -56,10 +71,12 @@ app.use( (req, res, next) => {
         referrer: req.headers['referer'],
         useragent: req.headers['user-agent']
     }
-    logdb.prepare('INSERT INTO accesslog ' +
+    const stmt = logdb.prepare('INSERT INTO accesslog ' +
         '(remote_addr, remote_user, time, method, url, protocol, http_version, status, referrer, user_agent) ' +
         'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
     );
+    stmt.run(logdata.remoteaddr, logdata.remoteuser, logdata.time, logdata.method, logdata.url, 
+        logdata.protocol, logdata.httpversion, logdata.status, logdata.referrer, logdata.useragent);
     next();
 })
 
