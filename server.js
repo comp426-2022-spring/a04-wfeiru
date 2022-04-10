@@ -1,10 +1,8 @@
 import { createRequire } from 'module';
 import { coinFlip, coinFlips, countFlips, flipACoin } from './modules/coin.mjs';
+import { logdb } from './database.js';
 
-// require express module
 const require = createRequire(import.meta.url);
-const express = require('express');
-const app = express();
 
 // require minimist module
 const args = require('minimist')(process.argv.slice(2));
@@ -14,20 +12,20 @@ const args = require('minimist')(process.argv.slice(2));
 
 // store help text 
 const help = (`
-server.js [options]
+    server.js [options]
 
---port	Set the port number for the server to listen on. Must be an integer
-            between 1 and 65535.
+    --port	Set the port number for the server to listen on. Must be an integer
+                between 1 and 65535.
 
---debug	If set to true, creates endlpoints /app/log/access/ which returns
-            a JSON access log from the database and /app/error which throws 
-            an error with the message "Error test successful." Defaults to 
-            false.
+    --debug	If set to true, creates endlpoints /app/log/access/ which returns
+                a JSON access log from the database and /app/error which throws 
+                an error with the message "Error test successful." Defaults to 
+                false.
 
---log		If set to false, no log files are written. Defaults to true.
-            Logs are always written to database.
+    --log		If set to false, no log files are written. Defaults to true.
+                Logs are always written to database.
 
---help	Return this message and exit.
+    --help	Return this message and exit.
 `)
 
 // if --help or -h, echo help text to STDOUT and exit
@@ -37,10 +35,33 @@ if (args.help || args.h) {
 }
 
 // start an app server
+const express = require('express');
+const app = express();
 const port = args.port||process.env.PORT||3000;
 const server = app.listen(port, () => {
     console.log('App listening on port %PORT%'.replace('%PORT%',port));
 });
+
+// middleware to insert a new record in database
+app.use( (req, res, next) => {
+    let logdata = {
+        remoteaddr: req.ip,
+        remoteuser: req.user,
+        time: Date.now(),
+        method: req.method,
+        url: req.url,
+        protocol: req.protocol,
+        httpversion: req.httpVersion,
+        status: res.statusCode,
+        referrer: req.headers['referer'],
+        useragent: req.headers['user-agent']
+    }
+    logdb.prepare('INSERT INTO accesslog ' +
+        '(remote_addr, remote_user, time, method, url, protocol, http_version, status, referrer, user_agent) ' +
+        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    );
+    next();
+})
 
 // endpoint /app/flip/
 app.get('/app/flip/', (req, res) => {
