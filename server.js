@@ -3,6 +3,9 @@ import { coinFlip, coinFlips, countFlips, flipACoin } from './modules/coin.mjs';
 import { logdb } from './database.js';
 
 const require = createRequire(import.meta.url);
+const express = require('express');
+const fs = require('fs');
+const morgan = require('morgan');
 
 // require minimist module
 const args = require('minimist')(process.argv.slice(2));
@@ -26,7 +29,7 @@ const help = (`
                 Logs are always written to database.
 
     --help	Return this message and exit.
-`)
+`);
 
 // if --help or -h, echo help text to STDOUT and exit
 if (args.help || args.h) {
@@ -35,12 +38,20 @@ if (args.help || args.h) {
 }
 
 // start an app server
-const express = require('express');
 const app = express();
-const port = args.port||process.env.PORT||3000;
+const port = args.port||process.env.PORT||5555;
 const server = app.listen(port, () => {
     console.log('App listening on port %PORT%'.replace('%PORT%',port));
 });
+
+// create an access log file
+if (!args.log) {
+    // use morgan for logging to files
+    // create a write stream to append (flags: 'a') to a file
+    const accessLog = fs.createWriteStream('access.log', { flags: 'a' })
+    // set up the access logging middleware
+    app.use(morgan('combined', { stream: accessLog }))
+}
 
 // endpoint /app/log/access, available only if --debug=true
 app.get('/app/log/access', (req, res) => {
@@ -55,7 +66,7 @@ app.get('/app/log/error', (req, res) => {
     if (args.debug) {
         throw new Error('Error test successful.')
     }
-})
+});
 
 // middleware to insert a new record in database
 app.use( (req, res, next) => {
