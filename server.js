@@ -78,8 +78,8 @@ if (debug) {
         res.json(stmt)
     });
 
-    // endpoint /app/log/error
-    app.get('/app/log/error', (req, res) => {
+    // endpoint /app/error
+    app.get('/app/error', (req, res) => {
         throw new Error('Error test successful.')
     });
 }
