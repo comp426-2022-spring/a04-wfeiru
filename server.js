@@ -42,9 +42,33 @@ const app = express();
 const port = args.port || process.env.PORT || 5555;
 const debug = args.debug || false
 const log = args.log || true
+
+app.use(express.json());
+app.use(express.urlencoded({extended: true}));
+
 const server = app.listen(port, () => {
     console.log('App listening on port %PORT%'.replace('%PORT%',port));
 });
+
+// middleware to insert a new record in database
+app.use( (req, res, next) => {
+    let logdata = {
+        remoteaddr: req.ip,
+        remoteuser: req.user,
+        time: Date.now(),
+        method: req.method,
+        url: req.url,
+        protocol: req.protocol,
+        httpversion: req.httpVersion,
+        status: res.statusCode,
+        referrer: req.headers['referer'],
+        useragent: req.headers['user-agent']
+    }
+    console.log(logdata);
+    const stmt = logdb.prepare('INSERT INTO accesslog (remote_addr, remote_user, time, method, url, protocol, http_version, status, referrer, user_agent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+    const info = stmt.run(logdata.remoteaddr, logdata.remoteuser, logdata.time, logdata.method, logdata.url, logdata.protocol, logdata.httpversion, logdata.status, logdata.referrer, logdata.useragent);
+    next();
+})
 
 // create an access log file
 if (!log) {
@@ -68,29 +92,6 @@ if (debug) {
         throw new Error('Error test successful.')
     });
 }
-
-// middleware to insert a new record in database
-app.use( (req, res, next) => {
-    let logdata = {
-        remoteaddr: req.ip,
-        remoteuser: req.user,
-        time: Date.now(),
-        method: req.method,
-        url: req.url,
-        protocol: req.protocol,
-        httpversion: req.httpVersion,
-        status: res.statusCode,
-        referrer: req.headers['referer'],
-        useragent: req.headers['user-agent']
-    }
-    const stmt = logdb.prepare('INSERT INTO accesslog ' +
-        '(remote_addr, remote_user, time, method, url, protocol, http_version, status, referrer, user_agent) ' +
-        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-    );
-    stmt.run(logdata.remoteaddr, logdata.remoteuser, logdata.time, logdata.method, logdata.url, 
-        logdata.protocol, logdata.httpversion, logdata.status, logdata.referrer, logdata.useragent);
-    next();
-})
 
 // endpoint /app/flip/
 app.get('/app/flip/', (req, res) => {
