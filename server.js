@@ -70,15 +70,6 @@ app.use( (req, res, next) => {
     next();
 })
 
-// create an access log file
-if (!log) {
-    // use morgan for logging to files
-    // create a write stream to append (flags: 'a') to a file
-    const accessLog = fs.createWriteStream('access.log', { flags: 'a' })
-    // set up the access logging middleware
-    app.use(morgan('combined', { stream: accessLog }))
-}
-
 // available only if --debug=true
 if (debug) {
     // endpoint /app/log/access
@@ -91,6 +82,15 @@ if (debug) {
     app.get('/app/log/error', (req, res) => {
         throw new Error('Error test successful.')
     });
+}
+
+// create an access log file
+if (!log) {
+    // use morgan for logging to files
+    // create a write stream to append (flags: 'a') to a file
+    const accessLog = fs.createWriteStream('access.log', { flags: 'a' })
+    // set up the access logging middleware
+    app.use(morgan('combined', { stream: accessLog }))
 }
 
 // endpoint /app/flip/
