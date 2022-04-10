@@ -53,20 +53,19 @@ if (!args.log) {
     app.use(morgan('combined', { stream: accessLog }))
 }
 
-// endpoint /app/log/access, available only if --debug=true
-app.get('/app/log/access', (req, res) => {
-    if (args.debug) {
+// available only if --debug=true
+if (args.debug == 'true') {
+    // endpoint /app/log/access
+    app.get('/app/log/access', (req, res) => {
         const stmt = logdb.prepare('SELECT * FROM accesslog').all()
         res.json(stmt)
-    }
-});
+    });
 
-// endpoint /app/log/error, available only if --debug=true
-app.get('/app/log/error', (req, res) => {
-    if (args.debug) {
+    // endpoint /app/log/error
+    app.get('/app/log/error', (req, res) => {
         throw new Error('Error test successful.')
-    }
-});
+    });
+}
 
 // middleware to insert a new record in database
 app.use( (req, res, next) => {
